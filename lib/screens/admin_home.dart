@@ -1,192 +1,129 @@
-import 'dart:io';
+// ignore_for_file: camel_case_types
 
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:location/location.dart';
+import 'Editcreen.dart';
+import 'change_password_screen.dart';
+import 'user_home.dart';
+import 'ViewAllStoriesScreen.dart';
+import 'StoryCommentsScreen.dart';
 
-class AdminHome extends StatefulWidget {
-  const AdminHome({super.key});
+class AdminStoryScreen extends StatefulWidget {
+  const AdminStoryScreen({super.key});
 
   @override
-  State<AdminHome> createState() => _AdminHomeState();
+  State<AdminStoryScreen> createState() => _AdminStoryScreenState();
 }
 
-class _AdminHomeState extends State<AdminHome> {
-  late GoogleMapController mapController;
-  final Location _location = Location();
-  LatLng _currentPosition = const LatLng(0.0, 0.0);
-  List<Map<String, dynamic>> clients = [];
-  final Set<Marker> _markers = {};
+class _AdminStoryScreenState extends State<AdminStoryScreen> {
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  bool _isPosting = false;
+  bool _isSuccess = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _getLocation();
-    _fetchClients();
-  }
+  List<String> notifications = [
+    "New user joined.",
+    "Story approved successfully.",
+    "System update scheduled.",
+  ];
+  
 
-  void _getLocation() async {
-    final loc = await _location.getLocation();
+  void _postStory() async {
+    if (_titleController.text.isEmpty || _contentController.text.isEmpty) return;
+
     setState(() {
-      _currentPosition = LatLng(loc.latitude ?? 0.0, loc.longitude ?? 0.0);
+      _isPosting = true;
+      _isSuccess = false;
+    });
+
+    await FirebaseFirestore.instance.collection('story').add({
+      'title': _titleController.text.trim(),
+      'content': _contentController.text.trim(),
+      'postedBy': 'Admin',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    setState(() {
+      _isPosting = false;
+      _isSuccess = true;
+      _titleController.clear();
+      _contentController.clear();
     });
   }
 
-  void _fetchClients() async {
-    final snapshot = await FirebaseFirestore.instance.collection('clients').get();
-    final List<Map<String, dynamic>> loadedClients = [];
-    final Set<Marker> clientMarkers = {};
+  void _navigateToChangePassword() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ChangePasswordScreen()));
+  }
 
-    for (var doc in snapshot.docs) {
+  void _navigateToViewStoriesScreen() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ViewAllStoriesScreen()));
+  }
+
+  void _navigateToUserHome() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const UserHome()));
+  }
+
+  void _navigateToStoryCommentsScreen() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => ViewCommentsScreen(storyId: '',)));
+  }
+
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.of(context).pushReplacementNamed('/login');
+  }
+
+  void _showNotifications() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('story')
+        .orderBy('lastUpdated', descending: true)
+        .limit(5)
+        .get();
+
+    final updatedStories = snapshot.docs.where((doc) {
       final data = doc.data();
-      final lat = data['latitude'];
-      final lng = data['longitude'];
-
-      if (lat != null && lng != null) {
-        loadedClients.add({...data, 'id': doc.id});
-        clientMarkers.add(
-          Marker(
-            markerId: MarkerId(doc.id),
-            position: LatLng(lat, lng),
-            infoWindow: InfoWindow(title: data['name']),
-          ),
-        );
-      }
-    }
-
-    setState(() {
-      clients = loadedClients;
-      _markers.addAll(clientMarkers);
-    });
-  }
-
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
-  void _showAddCarModal(BuildContext context) {
-    final plateCtrl = TextEditingController();
-    final colorCtrl = TextEditingController();
-    XFile? selectedImage;
+      return data.containsKey('lastUpdated') &&
+          data['lastUpdated'] != null &&
+          data['timestamp'] != null &&
+          (data['lastUpdated'] as Timestamp).compareTo(data['timestamp']) > 0;
+    }).toList();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
+      builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            top: 24,
-            left: 24,
-            right: 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 50,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Center(
-                  child: Text(
-                    'Add New Car',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: plateCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Car Number Plate',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: colorCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Car Color',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: Colors.grey[100],
-                    foregroundColor: Colors.black87,
-                    side: const BorderSide(color: Colors.grey),
-                    elevation: 0,
-                  ),
-                  onPressed: () async {
-                    final picker = ImagePicker();
-                    final image = await picker.pickImage(source: ImageSource.gallery);
-                    if (image != null) {
-                      selectedImage = image;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Image Selected')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.image_outlined),
-                  label: const Text('Upload Car Image'),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (plateCtrl.text.isEmpty || colorCtrl.text.isEmpty || selectedImage == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("All fields are required")),
-                        );
-                        return;
-                      }
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Notifications",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(),
 
-                      final uid = FirebaseAuth.instance.currentUser?.uid;
-                      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-                      final ref = FirebaseStorage.instance.ref().child('cars/$uid/$fileName');
-                      await ref.putFile(File(selectedImage!.path));
-                      final imageUrl = await ref.getDownloadURL();
+              ...notifications.map((msg) => ListTile(
+                    leading: const Icon(Icons.notifications, color: Colors.green),
+                    title: Text(msg),
+                  )),
 
-                      await FirebaseFirestore.instance.collection('cars').add({
-                        'plate': plateCtrl.text.trim(),
-                        'color': colorCtrl.text.trim(),
-                        'imageUrl': imageUrl,
-                        'addedBy': uid,
-                        'timestamp': FieldValue.serverTimestamp(),
-                      });
+              if (updatedStories.isNotEmpty) const Divider(),
 
-                      Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Car added successfully')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Save Car'),
+              ...updatedStories.map((doc) {
+                final data = doc.data();
+                return ListTile(
+                  leading: const Icon(Icons.edit, color: Colors.red),
+                  title: Text(
+                    '${data['title'] ?? 'Story'} has been updated',
+                    style: const TextStyle(color: Colors.red),
                   ),
-                ),
-              ],
-            ),
+                );
+              }),
+            ],
           ),
         );
       },
@@ -195,87 +132,217 @@ class _AdminHomeState extends State<AdminHome> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final greenColor = Colors.green;
+
     return Scaffold(
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: BoxDecoration(color: greenColor),
+              accountName: Text(user?.displayName ?? 'Admin User'),
+              accountEmail: Text(user?.email ?? 'admin@example.com'),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 42, color: greenColor),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.book_online_sharp, color: greenColor),
+              title: const Text('View All Stories'),
+              onTap: _navigateToViewStoriesScreen,
+            ),
+            ListTile(
+              leading: Icon(Icons.settings, color: greenColor),
+              title: const Text('Change Password'),
+              onTap: _navigateToChangePassword,
+            ),
+            ListTile(
+              leading: Icon(Icons.supervised_user_circle, color: greenColor),
+              title: const Text('User view story'),
+              onTap: _navigateToUserHome,
+            ),
+          
+          
+            ListTile(
+              leading: Icon(Icons.comment_outlined, color: greenColor),
+              title: const Text('User view comments'),
+              onTap: _navigateToStoryCommentsScreen,
+            ),
+
+            const SizedBox(height: 50),
+            ListTile(
+              leading: Icon(Icons.logout, color: greenColor),
+              title: const Text('Logout'),
+              onTap: _logout,
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
-        title: const Text("Admin Home"),
+        title: const Text('Post a Story'),
+        backgroundColor: greenColor,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushReplacementNamed('/login');
-            },
+            icon: const Icon(Icons.notifications),
+            onPressed: _showNotifications,
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddCarModal(context),
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              "Welcome, Admin!",
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Create a New Story',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        prefixIcon: Icon(Icons.title, color: greenColor),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _contentController,
+                      decoration: InputDecoration(
+                        labelText: 'Content',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        alignLabelWithHint: true,
+                      ),
+                      minLines: 3,
+                      maxLines: null,
+                    ),
+                    const SizedBox(height: 20),
+                    if (_isSuccess)
+                      Text(
+                        'Story posted successfully!',
+                        style: TextStyle(color: greenColor, fontWeight: FontWeight.bold),
+                      ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.send),
+                        label: _isPosting
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('Post Story'),
+                        onPressed: _isPosting ? null : _postStory,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          backgroundColor: greenColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Latest 5 Stories',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          ),
-          SizedBox(
-            height: 300,
-            child: GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition,
-                zoom: 14.0,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              markers: {
-                Marker(
-                  markerId: const MarkerId("admin_location"),
-                  position: _currentPosition,
-                  infoWindow: const InfoWindow(title: "Your Location"),
-                ),
-                ..._markers,
-              },
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Available Clients',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          Expanded(
-            child: clients.isEmpty
-                ? const Center(child: Text('No clients available'))
-                : ListView.builder(
-                    itemCount: clients.length,
+            const SizedBox(height: 10),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('story')
+                    .orderBy('timestamp', descending: true)
+                    .limit(5)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text('No stories posted yet.'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      final client = clients[index];
-                      return ListTile(
-                        leading: const Icon(Icons.person),
-                        title: Text(client['name'] ?? 'No Name'),
-                        subtitle: Text(
-                            'Lat: ${client['latitude']}, Lng: ${client['longitude']}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.map),
-                          onPressed: () {
-                            mapController.animateCamera(
-                              CameraUpdate.newLatLngZoom(
-                                LatLng(client['latitude'], client['longitude']),
-                                16,
+                      final doc = snapshot.data!.docs[index];
+                      final story = doc.data() as Map<String, dynamic>;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: ListTile(
+                          title: Text(
+                            story['title'] ?? 'No Title',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            story['content'] ?? 'No Content',
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: greenColor),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => EditStoryScreen(
+                                        docId: doc.id,
+                                        initialTitle: story['title'] ?? '',
+                                        initialContent: story['content'] ?? '',
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                onPressed: () async {
+                                  await FirebaseFirestore.instance
+                                      .collection('story')
+                                      .doc(doc.id)
+                                      .delete();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Story deleted')),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
-                  ),
-          ),
-        ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  
 }

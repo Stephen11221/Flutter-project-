@@ -24,11 +24,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(useMaterial3: true),
       home: const RoleBasedHome(),
       routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/admin': (context) => const AdminHome(),
-        '/userHome': (context) => const UserHome(),
-        '/reset': (context) => const ResetPasswordScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const RegisterScreen(),
+        '/admin': (_) => const AdminStoryScreen(),
+        '/userHome': (_) => const UserHome(),
+        '/reset': (_) => const ResetPasswordScreen(),
       },
     );
   }
@@ -45,18 +45,14 @@ class RoleBasedHome extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-
-        if (!snapshot.hasData || snapshot.data == null) {
+        final user = snapshot.data;
+        if (user == null) {
           return const LoginScreen();
         }
-
-        final user = snapshot.data!;
-        // Check role using email
         if (user.email == 'admin@gmail.com') {
-          return const AdminHome();
-        } else {
-          return const UserHome();
+          return const AdminStoryScreen();
         }
+        return const UserHome();
       },
     );
   }

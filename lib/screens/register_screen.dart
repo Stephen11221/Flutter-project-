@@ -77,8 +77,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text('Sign Up'),
         centerTitle: true,
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.green,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -132,6 +133,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     value: selectedRole,
                     items: const [
                       DropdownMenuItem(value: 'user', child: Text('User')),
+
+                      DropdownMenuItem(value: 'Writter', child: Text('Writter')),
                       DropdownMenuItem(value: 'admin', child: Text('Admin')),
                     ],
                     onChanged: (value) {
@@ -150,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ? const Center(child: CircularProgressIndicator())
                       : ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
+                            backgroundColor: Colors.green,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -169,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                     child: const Text(
                       'Already have an account? Login',
-                      style: TextStyle(color: Colors.teal),
+                      style: TextStyle(color: Colors.green),
                     ),
                   ),
                 ],

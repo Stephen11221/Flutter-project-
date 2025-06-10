@@ -50,6 +50,12 @@ dependencies:
   google_sign_in: ^6.3.0
   image_picker: ^1.1.2
   geolocator: ^14.0.1
+  connectivity_plus: ^6.1.4
+  get: ^4.7.2
+  flutter_polyline_points: ^2.1.0
+  latlong2: ^0.9.1
+  flutter_map: ^8.1.1
+  pie_chart: ^5.4.0
 
 dev_dependencies:
   flutter_test:
