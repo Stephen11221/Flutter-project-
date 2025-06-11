@@ -7,7 +7,8 @@ import 'Editcreen.dart';
 import 'change_password_screen.dart';
 import 'user_home.dart';
 import 'ViewAllStoriesScreen.dart';
-import 'StoryCommentsScreen.dart';
+import 'AddEventscreen.dart';
+import 'ListEventScreen.dart';
 
 class AdminStoryScreen extends StatefulWidget {
   const AdminStoryScreen({super.key});
@@ -63,9 +64,13 @@ class _AdminStoryScreenState extends State<AdminStoryScreen> {
   void _navigateToUserHome() {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) => const UserHome()));
   }
+  
+  void _navigateToAddEventscreen(){
+    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> AddEventScreen()));  
+  }
 
-  void _navigateToStoryCommentsScreen() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => ViewCommentsScreen(storyId: '',)));
+  void _navigateToListEventscreen(){
+    Navigator.of(context).push(MaterialPageRoute(builder: (context)  => EventListScreen()));
   }
 
   void _logout() async {
@@ -165,14 +170,18 @@ class _AdminStoryScreenState extends State<AdminStoryScreen> {
               onTap: _navigateToUserHome,
             ),
           
-          
             ListTile(
-              leading: Icon(Icons.comment_outlined, color: greenColor),
-              title: const Text('User view comments'),
-              onTap: _navigateToStoryCommentsScreen,
+              leading: Icon(Icons.event_available, color: greenColor,),
+              title: const Text('Add Event'),
+              onTap: _navigateToAddEventscreen,
+            )  ,     
+            ListTile(
+              leading: Icon(Icons.list_alt_rounded, color: greenColor,),
+              title: const Text('Listed Event'),
+              onTap: _navigateToListEventscreen,
             ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 80),
             ListTile(
               leading: Icon(Icons.logout, color: greenColor),
               title: const Text('Logout'),
