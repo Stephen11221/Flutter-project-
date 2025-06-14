@@ -3,37 +3,8 @@ import 'UserProfileScreen.dart';
 import 'UserSettingsScreen.dart';
 import 'ListEventScreen.dart';
 
-class AppDrawer extends StatefulWidget {
+class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
-
-  @override
-  State<AppDrawer> createState() => _AppDrawerState();
-}
-
-class _AppDrawerState extends State<AppDrawer> {
-  int _hoveredIndex = -1;
-
-  Widget buildHoverableTile({
-    required int index,
-    required Icon icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    final isHovered = _hoveredIndex == index;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = -1),
-      child: Container(
-        color: isHovered ? Colors.green.withOpacity(0.1) : Colors.transparent,
-        child: ListTile(
-          leading: icon,
-          title: Text(title),
-          onTap: onTap,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,37 +19,39 @@ class _AppDrawerState extends State<AppDrawer> {
               style: TextStyle(color: Colors.white, fontSize: 24),
             ),
           ),
-          buildHoverableTile(
-            index: 0,
-            icon: const Icon(Icons.person),
-            title: 'Profile',
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Profile'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const UserProfileScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+              );
             },
           ),
-          buildHoverableTile(
-            index: 1,
-            icon: const Icon(Icons.settings),
-            title: 'Change Password',
+          ListTile(
+            leading: const Icon(Icons.lock),
+            title: const Text('Change password'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+              );
             },
           ),
-          buildHoverableTile(
-            index: 2,
-            icon: const Icon(Icons.list_alt_rounded, color: Colors.green),
-            title: 'Upcoming Events',
+          ListTile(
+            leading: const Icon(Icons.list_alt_rounded, color: Colors.green),
+            title: const Text('Listed Events'),
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const EventListScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EventListScreen()),
+              );
             },
           ),
-          buildHoverableTile(
-            index: 3,
-            icon: const Icon(Icons.logout),
-            title: 'Logout',
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
             onTap: () {
               Navigator.pop(context); // Close drawer
               Navigator.pushReplacementNamed(context, '/login');
